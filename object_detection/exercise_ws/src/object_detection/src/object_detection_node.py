@@ -31,6 +31,11 @@ class ObjectDetectionNode(DTROS):
             dt_topic_type=TopicType.PERCEPTION
         )
 
+        self.pub_d_viz_obj = rospy.Publisher(
+            "~/debug/viz_obj/compressed", CompressedImage, queue_size=1,
+            dt_topic_type=TopicType.DEBUG
+        )
+
         # Construct subscribers
         self.sub_image = rospy.Subscriber(
             "~image/compressed",
