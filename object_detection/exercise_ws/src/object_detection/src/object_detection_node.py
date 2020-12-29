@@ -88,12 +88,13 @@ class ObjectDetectionNode(DTROS):
             )
         
         image = cv2.resize(image, (224,224))
-        bboxes, classes, scores = self.model_wrapper.predict(image)
+        # bboxes, classes, scores = self.model_wrapper.predict(image)
         
         msg = BoolStamped()
         msg.header = image_msg.header
-        msg.data = self.det2bool(bboxes[0], classes[0]) # [0] because our batch size given to the wrapper is 1
-        
+        # msg.data = self.det2bool(bboxes[0], classes[0]) # [0] because our batch size given to the wrapper is 1
+        msg.data = False
+
         self.pub_obj_dets.publish(msg)
     
     def det2bool(self, bboxes, classes):
