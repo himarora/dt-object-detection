@@ -60,8 +60,9 @@ class ObjectDetectionNode(DTROS):
         model_file = rospy.get_param('~model_file', '.')
         rospack = rospkg.RosPack()
         model_file_absolute = rospack.get_path('object_detection') + model_file
-        self.model_wrapper = Wrapper(model_file_absolute)
+        self.model_wrapper = Wrapper(model_file_absolute, n_classes=4)
         self.initialized = True
+        self.classes = ["duckie", "cone", "truck", "bus"]
         self.log("Initialized!")
 
     def thresholds_cb(self, thresh_msg):
@@ -97,35 +98,26 @@ class ObjectDetectionNode(DTROS):
 
         msg = BoolStamped()
         msg.header = image_msg.header
-        # msg.data = self.det2bool(bboxes[0], classes[0]) # [0] because our batch size given to the wrapper is 1
-        msg.data = False
-
+        msg.data = self.det2bool(bboxes, classes)
+        print(f"Decision: {msg.data}\n")
         self.pub_obj_dets.publish(msg)
 
     def det2bool(self, bboxes, classes):
         # TODO remove these debugging prints
-        print(bboxes)
-        print(classes)
+        # print(bboxes)
+        # print(classes)
+        clas = 0    # look for duckies
+        min_area = 5000
+        y_range = (50, 190)
+        for i, (box, c) in enumerate(zip(bboxes, classes)):
+            area = (box[2] - box[0]) * (box[3] - box[1])
+            center = ((box[0] + box[2]) * 0.5, (box[1] + box[3]) * 0.5)
+            if c == clas:
+                print(f"{self.classes[c]} {center} {area:.2f}")
+            if area > min_area and c == clas and y_range[0] < center[0] < y_range[1]:
+                return True
+        return False
 
-        # This is a dummy solution, remove this next line
-        return len(bboxes) > 1
-
-        # TODO filter the predictions: the environment here is a bit different versus the data collection environment, and your model might output a bit
-        # of noise. For example, you might see a bunch of predictions with x1=223.4 and x2=224, which makes
-        # no sense. You should remove these. 
-
-        # TODO also filter detections which are outside of the road, or too far away from the bot. Only return True when there's a pedestrian (aka a duckie)
-        # in front of the bot, which you know the bot will have to avoid. A good heuristic would be "if centroid of bounding box is in the center of the image, 
-        # assume duckie is in the road" and "if bouding box's area is more than X pixels, assume duckie is close to us"
-
-        obj_det_list = []
-        for i in range(len(bboxes)):
-            x1, y1, x2, y2 = bboxes[i]
-            label = classes[i]
-
-            # TODO if label isn't a duckie, skip
-            # TODO if detection is a pedestrian in front of us:
-            #   return True
 
 
 if __name__ == "__main__":

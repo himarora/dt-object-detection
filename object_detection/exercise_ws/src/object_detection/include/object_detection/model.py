@@ -10,11 +10,11 @@ class Wrapper:
     Loads a pre-trained YOLOv5 model for inference
     """
 
-    def __init__(self, model_file, image_size=224):
+    def __init__(self, model_file, image_size=224, n_classes=2):
         self.weights_path = model_file
         self.device = "cuda" if torch.cuda.is_available() else "cpu"  # YOLOv5-s should work fine on CPU as well
         self.model = Model("/code/exercise_ws/src/object_detection/include/object_detection/yolov5/models/yolov5s.yaml",
-                           ch=3, nc=2)
+                           ch=3, nc=n_classes)
         weights = torch.load(self.weights_path, map_location=self.device)
         print(self.model.load_state_dict(weights))
         self.model.eval()
@@ -22,6 +22,9 @@ class Wrapper:
         self.class_id = tuple(range(len(self.classes)))
         if len(self.classes) == 2:
             self.colors = ((255, 255, 0), (0, 165, 255))  # 0: duckie, 1: cone
+        else:
+            self.colors = ((100, 117, 226), (226, 111, 101), (116, 114, 117), (216, 171, 15))  # 0: duckie, 1: cone, 2: truck, 3: bus
+
         self.im_sz = image_size
         print(f"Loaded model {self.weights_path} to detect {self.classes} with ids {self.class_id}")
 
