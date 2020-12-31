@@ -1,0 +1,4 @@
+train: ../dataset/sim_data/real-data-yolo/images/train
+val: ../dataset/sim_data/real-data-yolo/images/val
+nc: 2
+names: ['duckie', 'cone']

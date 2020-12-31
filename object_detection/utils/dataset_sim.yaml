@@ -1,0 +1,4 @@
+train: ../dataset/sim_data/sim-data-yolo/images/train
+val: ../dataset/sim_data/sim-data-yolo/images/val
+nc: 4
+names: ['duckie', 'cone', 'truck', 'bus']
