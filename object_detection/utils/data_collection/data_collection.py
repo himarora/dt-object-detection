@@ -104,7 +104,7 @@ if __name__ == "__main__":
 
     MAX_STEPS = 250
 
-    rmtree(DATASET_DIR)
+    # rmtree(DATASET_DIR)
     os.makedirs(DATASET_DIR)
 
     n_classes = 4
