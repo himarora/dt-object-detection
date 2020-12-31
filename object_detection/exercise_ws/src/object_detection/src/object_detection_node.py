@@ -60,9 +60,11 @@ class ObjectDetectionNode(DTROS):
         model_file = rospy.get_param('~model_file', '.')
         rospack = rospkg.RosPack()
         model_file_absolute = rospack.get_path('object_detection') + model_file
-        self.model_wrapper = Wrapper(model_file_absolute, n_classes=4)
+        self.model_wrapper = Wrapper(model_file_absolute, n_classes=2)
         self.initialized = True
         self.classes = ["duckie", "cone", "truck", "bus"]
+        self.infer_count = 0
+        self.last_decision = False
         self.log("Initialized!")
 
     def thresholds_cb(self, thresh_msg):
@@ -73,33 +75,43 @@ class ObjectDetectionNode(DTROS):
     def image_cb(self, image_msg):
         if not self.initialized:
             return
-
+        self.infer_count += 1
         # TODO to get better hz, you might want to only call your wrapper's predict function only once ever 4-5 images?
         # This way, you're not calling the model again for two practically identical images. Experiment to find a good number of skipped
         # images.
-
-        # Decode from compressed image with OpenCV
-        try:
-            image = self.bridge.compressed_imgmsg_to_cv2(image_msg)
-        except ValueError as e:
-            self.logerr('Could not decode image: %s' % e)
-            return
-
-        # Perform color correction
-        if self.ai_thresholds_received:
-            image = self.ai.apply_color_balance(
-                self.anti_instagram_thresholds["lower"],
-                self.anti_instagram_thresholds["higher"],
-                image
-            )
-
-        image = cv2.resize(image, (224, 224))
-        # bboxes, classes, scores = self.model_wrapper.predict(image)
-
+        print("Got callback")
+        if self.infer_count % 5 == 0:
+            # Decode from compressed image with OpenCV
+            try:
+                image = self.bridge.compressed_imgmsg_to_cv2(image_msg)
+            except ValueError as e:
+                self.logerr('Could not decode image: %s' % e)
+                return
+    
+            # Perform color correction
+            if self.ai_thresholds_received:
+                image = self.ai.apply_color_balance(
+                    self.anti_instagram_thresholds["lower"],
+                    self.anti_instagram_thresholds["higher"],
+                    image
+                )
+    
+            image = cv2.resize(image, (224, 224))
+            bboxes, classes, scores = self.model_wrapper.predict(image)
+            bboxes, classes, scores = bboxes[0], classes[0], scores[0]
+            if self.pub_d_viz_obj.get_num_connections():
+                debug_image_msg = self.bridge.cv2_to_compressed_imgmsg(self.model_wrapper.visualize(image, bboxes, classes))
+                debug_image_msg.header = image_msg.header
+                self.pub_d_viz_obj.publish(debug_image_msg)
+            
+            decision = self.det2bool(bboxes, classes)
+            self.last_decision = decision
+        else:
+            decision = self.last_decision
+        print(f"Decision: {decision}\n")
         msg = BoolStamped()
         msg.header = image_msg.header
-        msg.data = self.det2bool(bboxes, classes)
-        print(f"Decision: {msg.data}\n")
+        msg.data = decision
         self.pub_obj_dets.publish(msg)
 
     def det2bool(self, bboxes, classes):
@@ -107,8 +119,15 @@ class ObjectDetectionNode(DTROS):
         # print(bboxes)
         # print(classes)
         clas = 0    # look for duckies
-        min_area = 5000
-        y_range = (50, 190)
+
+        # Sim
+        # min_area = 5000
+        # y_range = (50, 190)
+
+        # Duckiebot
+        min_area = 800
+        # y_range = (50, 190)
+        y_range = (80, 150)
         for i, (box, c) in enumerate(zip(bboxes, classes)):
             area = (box[2] - box[0]) * (box[3] - box[1])
             center = ((box[0] + box[2]) * 0.5, (box[1] + box[3]) * 0.5)
@@ -117,7 +136,6 @@ class ObjectDetectionNode(DTROS):
             if area > min_area and c == clas and y_range[0] < center[0] < y_range[1]:
                 return True
         return False
-
 
 
 if __name__ == "__main__":
