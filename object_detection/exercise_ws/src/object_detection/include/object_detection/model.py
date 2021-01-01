@@ -12,7 +12,7 @@ class Wrapper:
 
     def __init__(self, model_file, image_size=224, n_classes=2):
         self.weights_path = model_file
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"  # YOLOv5-s should work fine on CPU as well
+        self.device = "cpu" # "cuda" if torch.cuda.is_available() else "cpu"  # YOLOv5-s should work fine on CPU as well
         self.model = Model("/code/exercise_ws/src/object_detection/include/object_detection/yolov5/models/yolov5s.yaml",
                            ch=3, nc=n_classes)
         weights = torch.load(self.weights_path, map_location=self.device)
