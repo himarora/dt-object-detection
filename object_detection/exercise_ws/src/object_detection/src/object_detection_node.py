@@ -117,7 +117,7 @@ class ObjectDetectionNode(DTROS):
 
         # Sim
         min_area = 1200
-        y_range = (50, 190)
+        y_range = (50, 200)
 
         # Duckiebot
         # min_area = 800
